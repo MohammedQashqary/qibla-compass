@@ -4,45 +4,76 @@
   <meta charset="UTF-8">
   <title>اتجاه القبلة</title>
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 50px; }
-    #compass { width: 200px; transition: transform 0.2s linear; }
-    button { padding: 10px 20px; margin-top: 15px; }
+    body { font-family: Arial; text-align: center; margin-top: 30px; direction: rtl; }
+    #compass { width: 250px; transition: transform 0.2s linear; }
+    #fallback { width: 250px; height: 250px; border: 2px dashed #555; display: none; 
+                align-items: center; justify-content: center; margin: 0 auto; }
+    button { padding: 10px 20px; margin-top: 15px; cursor: pointer; }
   </style>
 </head>
 <body>
+
   <h2>اتجاه القبلة</h2>
-  <img id="compass" src="https://i.imgur.com/i8bJ4wK.png">
-  <p id="angle">انتظر...</p>
+  <img id="compass" src="https://i.imgur.com/7bQZs8D.png" onerror="showFallback()">
+  <div id="fallback">🧭 صورة غير متوفرة</div>
+
+  <p id="angle">زاوية الاتجاه: ...</p>
   <button id="enable">اضغط لتفعيل البوصلة</button>
 
   <script>
     const compass = document.getElementById("compass");
+    const fallback = document.getElementById("fallback");
     const angleText = document.getElementById("angle");
-    const enableButton = document.getElementById("enable");
+    const button = document.getElementById("enable");
+
+    let qiblaAngle = 0;
+
+    function showFallback() {
+      compass.style.display = "none";
+      fallback.style.display = "flex";
+    }
+
+    // حساب زاوية القبلة من الموقع الحالي
+    function calculateQibla(lat, lon) {
+      const kaabaLat = 21.4225 * Math.PI/180;
+      const kaabaLon = 39.8262 * Math.PI/180;
+      const userLat = lat * Math.PI/180;
+      const userLon = lon * Math.PI/180;
+
+      let angle = Math.atan2(
+        Math.sin(kaabaLon - userLon),
+        Math.cos(userLat)*Math.tan(kaabaLat) - Math.sin(userLat)*Math.cos(kaabaLon - userLon)
+      );
+      angle = angle * 180 / Math.PI;
+      return (angle + 360) % 360;
+    }
+
+    // الحصول على الموقع الجغرافي
+    navigator.geolocation.getCurrentPosition(position => {
+      qiblaAngle = calculateQibla(position.coords.latitude, position.coords.longitude);
+    });
 
     function startCompass() {
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-        .then(permissionState => {
-          if (permissionState === 'granted') {
-            window.addEventListener("deviceorientation", handleOrientation);
+      if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission().then(state => {
+          if (state === "granted") {
+            window.addEventListener("deviceorientation", rotateCompass);
           }
-        })
-        .catch(console.error);
+        });
       } else {
-        window.addEventListener("deviceorientation", handleOrientation);
+        window.addEventListener("deviceorientation", rotateCompass);
       }
     }
 
-    function handleOrientation(event) {
+    function rotateCompass(event) {
       let heading = event.webkitCompassHeading || 360 - event.alpha;
-      compass.style.transform = `rotate(${heading}deg)`;
-      angleText.textContent = "زاوية الاتجاه: " + Math.round(heading) + "°";
+      let qiblaDirection = heading - qiblaAngle;
+      compass.style.transform = `rotate(${qiblaDirection}deg)`;
+      angleText.textContent = "°زاوية القبلة: " + Math.round(qiblaAngle);
     }
 
-    enableButton.onclick = function() {
-      startCompass();
-    };
+    button.onclick = startCompass;
   </script>
+
 </body>
 </html>
