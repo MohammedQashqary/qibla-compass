@@ -38,25 +38,25 @@
 
   <h1>اتجاه القبلة</h1>
 
-  <!-- صورة البوصلة -->
   <img id="compass" src="compass.png" alt="Compass">
 
-  <!-- معلومات -->
   <div id="info">جاري تحديد موقعك...</div>
   <div id="message"></div>
 
-  <!-- زر لأجهزة iOS -->
   <button id="enableCompassBtn" style="display:none;">تفعيل البوصلة (iOS)</button>
 
   <script>
     let userLat, userLon, bearingToQibla = 0;
 
-    // طلب الموقع الجغرافي
+    if (isInAppBrowser()) {
+      showMessage("افتح الموقع في Safari أو Chrome — المتصفح داخل التطبيق لا يدعم المستشعر.");
+    }
+
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(success, showError, {
+      navigator.geolocation.getCurrentPosition(success, handleLocationError, {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 60000
+        timeout: 30000,
+        maximumAge: 0
       });
     } else {
       showMessage("المتصفح لا يدعم تحديد الموقع.");
@@ -66,57 +66,57 @@
       userLat = position.coords.latitude;
       userLon = position.coords.longitude;
       bearingToQibla = calculateBearing(userLat, userLon, 21.4225, 39.8262);
-      document.getElementById('info').textContent =
-        `زاوية القبلة: ${bearingToQibla.toFixed(1)}°`;
+      document.getElementById('info').textContent = `زاوية القبلة: ${bearingToQibla.toFixed(1)}°`;
       initCompass();
     }
 
-    function showError(error) {
+    function handleLocationError(error) {
       const msg = {
         1: "تم رفض إذن الموقع.",
-        2: "الموقع غير متاح.",
-        3: "انتهى الوقت بدون الحصول على موقع."
+        2: "تعذر الحصول على موقعك.",
+        3: "انتهى الوقت دون الحصول على موقع. تأكد من GPS أو الإنترنت."
       };
-      showMessage(msg[error.code] || "حدث خطأ في تحديد الموقع.");
+      showMessage(msg[error.code] || "خطأ غير معروف في تحديد الموقع.");
     }
 
     function showMessage(text) {
       document.getElementById('message').textContent = text;
     }
 
-    // حساب زاوية القبلة (bearing)
     function calculateBearing(lat1, lon1, lat2, lon2) {
-      const toRad = deg => deg * Math.PI / 180;
+      const toRad = d => d * Math.PI / 180;
       lat1 = toRad(lat1); lon1 = toRad(lon1);
       lat2 = toRad(lat2); lon2 = toRad(lon2);
       const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) -
-                Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
-    // تفعيل البوصلة
     function initCompass() {
-      if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-        document.getElementById('enableCompassBtn').style.display = 'inline-block';
-        document.getElementById('enableCompassBtn').onclick = async () => {
+      if (typeof DeviceOrientationEvent?.requestPermission === "function") {
+        document.getElementById("enableCompassBtn").style.display = "inline-block";
+        document.getElementById("enableCompassBtn").onclick = async () => {
           const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission === 'granted') startCompass();
+          if (permission === "granted") startCompass();
+          else showMessage("تم رفض إذن البوصلة.");
         };
       } else {
         startCompass();
       }
     }
 
-    // تشغيل مستشعر الاتجاه
     function startCompass() {
-      window.addEventListener('deviceorientation', (event) => {
+      window.addEventListener("deviceorientation", (event) => {
         if (event.alpha === null) return;
-
         const heading = event.webkitCompassHeading || (360 - event.alpha);
         const rotation = heading - bearingToQibla;
-        document.getElementById('compass').style.transform = `rotate(${rotation}deg)`;
+        document.getElementById("compass").style.transform = `rotate(${rotation}deg)`;
       });
+    }
+
+    function isInAppBrowser() {
+      const ua = navigator.userAgent;
+      return ua.includes("Instagram") || ua.includes("FBAN") || ua.includes("FBAV") || ua.includes("WhatsApp");
     }
   </script>
 
