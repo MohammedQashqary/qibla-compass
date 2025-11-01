@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>بوصلة القبلة</title>
+  <meta name="theme-color" content="#0b1220">
+  <!-- iOS standalone (اختياري) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #111a2f;
+      --accent: #13c2c2;
+      --muted: #8aa4c0;
+      --text: #e6f7ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Naskh Arabic UI", sans-serif;
+      display: grid; place-items: center; padding: 16px; }
+    .app { width: 100%; max-width: 520px; }
+    .card {
+      background: linear-gradient(180deg, #12213d 0%, #0d172d 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px; padding: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    header { display:flex; align-items:center; justify-content: space-between; gap:12px; }
+    h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+    .badge { font-size: 12px; color: var(--accent); opacity:.9 }
+    .compass-wrap { position: relative; aspect-ratio: 1 / 1; width: 100%; margin: 18px auto; }
+    .compass {
+      position: absolute; inset: 0; display:grid; place-items:center; border-radius: 50%;
+      background: radial-gradient(120% 120% at 50% 50%, #132447 0%, #0d172d 60%, #0a1221 100%);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .ring { position:absolute; inset: 8px; border-radius:50%; border: 2px dashed rgba(255,255,255,.08); }
+    .needle { position:absolute; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 120px solid var(--accent); filter: drop-shadow(0 6px 14px rgba(19,194,194,.4)); transform-origin: 50% 115px; }
+    .tail { position:absolute; width: 0; height:0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 70px solid #ff4d4f; transform-origin: 50% -54px; filter: drop-shadow(0 4px 10px rgba(255,77,79,.35)); opacity:.95 }
+    .center-dot { position:absolute; width: 14px; height:14px; background:#fff; border-radius:50%; box-shadow: 0 0 0 5px rgba(19,194,194,.18), inset 0 0 0 2px var(--card); }
+    .tick { position:absolute; inset: 14px; border-radius:50%; pointer-events:none; }
+    .tick div { position:absolute; left:50%; transform: translateX(-50%); width:2px; height:10px; background: rgba(255,255,255,.2); transform-origin: 50% 136px; }
+    .qibla-arrow { position:absolute; top: 8px; left:50%; transform: translateX(-50%); font-size: 12px; color: var(--text); opacity:.8 }
+    .readouts { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .pill { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 10px; text-align:center; }
+    .pill small { display:block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .btns { display:flex; gap:10px; margin-top: 12px; flex-wrap: wrap; }
+    button { flex:1 1 auto; appearance:none; border:1px solid rgba(255,255,255,.12); background:#0f1b34; color:#e6f7ff; padding:12px; border-radius: 12px; font-weight:600; letter-spacing:.3px; }
+    button.primary { background: linear-gradient(180deg,#14dad6,#13c2c2); color:#0a0f18; border:none; }
+    button.danger { background: #2a0f12; border-color:#3b1518; color:#ffccc7; }
+    .tip { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    footer { margin-top: 14px; display:flex; justify-content:space-between; font-size: 12px; color: var(--muted); }
+    .ok { color: #95de64; }
+    .warn { color: #ffd666; }
+    .err { color: #ff7875; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <header>
+        <h1>بوصلة القبلة</h1>
+        <span id="status" class="badge">جاهزة</span>
+      </header>
+
+      <div class="compass-wrap">
+        <div class="compass" id="compass">
+          <div class="ring"></div>
+          <div class="tick" id="ticks"></div>
+          <div class="needle" id="needle"></div>
+          <div class="tail" id="tail"></div>
+          <div class="center-dot"></div>
+          <div class="qibla-arrow">⬇︎ اتجاه القبلة</div>
+        </div>
+      </div>
+
+      <div class="readouts">
+        <div class="pill"><small>زاوية القبلة</small><b id="bearingText">—°</b></div>
+        <div class="pill"><small>اتجاه الجهاز</small><b id="headingText">—°</b></div>
+        <div class="pill"><small>الفارق</small><b id="deltaText">—°</b></div>
+        <div class="pill"><small>الموقع</small><b id="locText">—</b></div>
+      </div>
+
+      <div class="btns">
+        <button id="grantBtn" class="primary">السماح بحساسات الحركة</button>
+        <button id="locBtn">تحديد الموقع</button>
+        <button id="resetBtn" class="danger">إعادة المعايرة</button>
+      </div>
+
+      <p class="tip">
+        ملاحظات سريعة: يحتاج iOS إلى سماح عبر زر «حساسات الحركة». يجب فتح الصفحة عبر HTTPS. أبقِ الهاتف بشكل عمودي وحرّكه على شكل رقم 8 لتحسين الدقة.
+      </p>
+
+      <footer>
+        <span>Safari & Chrome للجوال</span>
+        <span id="secureLabel"></span>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ثابت: إحداثيات الكعبة
+    const KAABA = { lat: 21.422487, lon: 39.826206 };
+
+    // عناصر DOM
+    const needle = document.getElementById('needle');
+    const tail = document.getElementById('tail');
+    const bearingText = document.getElementById('bearingText');
+    const headingText = document.getElementById('headingText');
+    const deltaText = document.getElementById('deltaText');
+    const locText = document.getElementById('locText');
+    const grantBtn = document.getElementById('grantBtn');
+    const locBtn = document.getElementById('locBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusEl = document.getElementById('status');
+    const secureLabel = document.getElementById('secureLabel');
+    const ticks = document.getElementById('ticks');
+
+    // رسم العلامات حول القرص
+    (function buildTicks(){
+      const frag = document.createDocumentFragment();
+      for (let i=0;i<36;i++){ // كل 10 درجات
+        const d = document.createElement('div');
+        d.style.transform = `translateX(-50%) rotate(${i*10}deg)`;
+        d.style.height = (i%9===0) ? '16px' : (i%3===0 ? '12px' : '8px');
+        d.style.background = (i%9===0) ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.18)';
+        frag.appendChild(d);
+      }
+      ticks.appendChild(frag);
+    })();
+
+    // حالة الأمان (HTTPS)
+    secureLabel.textContent = location.protocol === 'https:' ? '🔒 اتصال آمن' : '⚠️ يُنصح باستخدام HTTPS';
+
+    // الموقع الحالي
+    let userPos = null; // {lat, lon}
+
+    // أدوات رياضية
+    const toRad = d => d * Math.PI / 180;
+    const toDeg = r => r * 180 / Math.PI;
+
+    // حساب زاوية القبلة من موقع المستخدم إلى الكعبة (من الشمال مع عقارب الساعة)
+    function qiblaBearing(fromLat, fromLon){
+      // معادلة السمت: https://en.wikipedia.org/wiki/Great-circle_navigation
+      const φ1 = toRad(fromLat), λ1 = toRad(fromLon);
+      const φ2 = toRad(KAABA.lat), λ2 = toRad(KAABA.lon);
+      const y = Math.sin(λ2-λ1) * Math.cos(φ2);
+      const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(λ2-λ1);
+      let θ = Math.atan2(y, x);
+      θ = (toDeg(θ) + 360) % 360; // 0..360 من الشمال
+      return θ;
+    }
+
+    // ترشيح بسيط لتنعيم القراءات
+    function lerp(a,b,t){ return a + (b-a)*t; }
+
+    let targetBearing = null; // درجة
+    let currentHeading = null; // درجة
+    let displayHeading = 0;
+
+    function updateNeedle(){
+      if (targetBearing == null || currentHeading == null) return;
+      const delta = ((targetBearing - currentHeading + 540) % 360) - 180; // -180..180
+      // دوّر الإبرة بحيث تشير إلى القبلة بالنسبة لرأس الجهاز
+      const rotation = currentHeading + delta; // مطابقة إحساس المستخدم
+      displayHeading = lerp(displayHeading, rotation, 0.2);
+      needle.style.transform = `rotate(${displayHeading}deg)`;
+      tail.style.transform = `rotate(${displayHeading+180}deg)`;
+      // تحديث النصوص
+      bearingText.textContent = `${targetBearing.toFixed(0)}°`;
+      headingText.textContent = `${currentHeading.toFixed(0)}°`;
+      deltaText.textContent = `${Math.abs(delta).toFixed(0)}°`;
+    }
+
+    function setStatus(text, cls=''){
+      statusEl.textContent = text;
+      statusEl.className = 'badge ' + cls;
+    }
+
+    // طلب إذن حساس الحركة (مطلوب على iOS)
+    async function requestMotionPermission(){
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+          const res = await DeviceOrientationEvent.requestPermission();
+          if (res === 'granted'){ setStatus('تم السماح بالحركة', 'ok'); startOrientation(); }
+          else { setStatus('رُفض إذن الحركة', 'err'); }
+        } else {
+          // أندرويد أو iOS قديم
+          setStatus('محاولة قراءة الاتجاه..', 'warn');
+          startOrientation();
+        }
+      } catch(e){ setStatus('خطأ في طلب الإذن', 'err'); console.error(e); }
+    }
+
+    // قراءة اتجاه الجهاز
+    function startOrientation(){
+      if (!('ondeviceorientationabsolute' in window) && !('ondeviceorientation' in window)){
+        setStatus('حساس الاتجاه غير مدعوم', 'err'); return;
+      }
+      // استخدم الحدث المطلق إن توفر
+      const handler = (ev) => {
+        let heading = null;
+        // iOS Safari يوفر webkitCompassHeading مباشرة (0 = الشمال الحقيقي)
+        if (typeof ev.webkitCompassHeading === 'number' && !isNaN(ev.webkitCompassHeading)){
+          heading = ev.webkitCompassHeading; // بالفعل مع اتجاه عقارب الساعة من الشمال
+        } else if (ev.absolute === true && typeof ev.alpha === 'number'){
+          // على كثير من أجهزة أندرويد: alpha = 0 عند الشمال (مع عقارب الساعة)
+          // بعض الأجهزة معكوسة، سنحوّل إلى بوصلة: heading = 360 - alpha
+          heading = (360 - ev.alpha) % 360;
+        } else if (typeof ev.alpha === 'number'){
+          // fallback نسبي (قد يحتاج معايرة)
+          heading = (360 - ev.alpha) % 360;
+        }
+        if (heading != null){
+          currentHeading = (heading + orientationOffset) % 360;
+          updateNeedle();
+        }
+      };
+      window.addEventListener('deviceorientationabsolute', handler, true);
+      window.addEventListener('deviceorientation', handler, true);
+      setStatus('جارٍ القراءة..', 'ok');
+    }
+
+    // زر الإذن
+    grantBtn.addEventListener('click', requestMotionPermission);
+
+    // تحديد الموقع
+    function getLocation(){
+      if (!('geolocation' in navigator)){
+        setStatus('المتصفح لا يدعم تحديد الموقع', 'err'); return;
+      }
+      setStatus('جارٍ تحديد الموقع..');
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        userPos = { lat: latitude, lon: longitude };
+        targetBearing = qiblaBearing(userPos.lat, userPos.lon);
+        locText.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        setStatus('تم تحديد الموقع', 'ok');
+        updateNeedle();
+      }, err => {
+        setStatus('تعذّر تحديد الموقع', 'err');
+        console.warn(err);
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+    }
+
+    locBtn.addEventListener('click', getLocation);
+
+    // معايرة يدوية طفيفة إذا كان الهاتف يعكس الزوايا
+    let orientationOffset = 0;
+    resetBtn.addEventListener('click', ()=>{
+      orientationOffset = 0; displayHeading = 0; setStatus('تمت إعادة المعايرة', 'warn');
+    });
+
+    // لوحة معايرة تحتفظ بالفرق الحالي كتعويض (اضغط مطوّلاً على الإبرة)
+    let pressTimer = null;
+    document.getElementById('compass').addEventListener('touchstart', ()=>{
+      pressTimer = setTimeout(()=>{
+        if (targetBearing!=null && currentHeading!=null){
+          const delta = ((targetBearing - currentHeading + 540) % 360) - 180;
+          orientationOffset = (orientationOffset + delta) % 360;
+          setStatus('تم تصحيح الانحراف', 'ok');
+        }
+      }, 700);
+    });
+    document.getElementById('compass').addEventListener('touchend', ()=> clearTimeout(pressTimer));
+
+    // محاولة تلقائية: اطلب الموقع مباشرة لضبط السمت
+    if (location.protocol === 'https:') {
+      // لا تطلب الحركة تلقائياً لأن iOS يحتاج تفاعل المستخدم
+      getLocation();
+    }
+
+    // إخفاء زر الإذن على أندرويد (غير مطلوب عادةً)
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function'){
+      grantBtn.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
