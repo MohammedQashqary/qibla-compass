@@ -4,45 +4,109 @@
   <meta charset="UTF-8">
   <title>اتجاه القبلة</title>
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 50px; }
-    #compass { width: 200px; transition: transform 0.2s linear; }
-    button { padding: 10px 20px; margin-top: 15px; }
+    body {
+      font-family: "Arial", sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+    }
+
+    h2 {
+      margin-top: 30px;
+    }
+
+    #compass-container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+    }
+
+    /* صورة الخلفية الدائرية */
+    #compass-bg {
+      width: 260px;
+      height: 260px;
+    }
+
+    /* سهم البوصلة المتحرك */
+    #compass-needle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      transform-origin: 50% 90%; /* عشان السهم يدور من القاعدة */
+      transform: translate(-50%, -90%) rotate(0deg);
+      transition: transform 0.2s linear;
+    }
+
+    #angle {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 12px 25px;
+      margin-top: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #0084ff;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #006adb;
+    }
   </style>
 </head>
 <body>
+
   <h2>اتجاه القبلة</h2>
-  <img id="compass" src="https://i.imgur.com/i8bJ4wK.png">
+
+  <div id="compass-container">
+    <!-- دائرة البوصلة -->
+    <img id="compass-bg" src="https://i.imgur.com/Te0oO5u.png" alt="Compass Background">
+    <!-- الإبرة -->
+    <img id="compass-needle" src="https://i.imgur.com/Q1Z9GkG.png" alt="Compass Needle">
+  </div>
+
   <p id="angle">انتظر...</p>
   <button id="enable">اضغط لتفعيل البوصلة</button>
 
   <script>
-    const compass = document.getElementById("compass");
+    const needle = document.getElementById("compass-needle");
     const angleText = document.getElementById("angle");
     const enableButton = document.getElementById("enable");
 
     function startCompass() {
       if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
-        .then(permissionState => {
-          if (permissionState === 'granted') {
-            window.addEventListener("deviceorientation", handleOrientation);
-          }
-        })
-        .catch(console.error);
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener("deviceorientation", handleOrientation);
+            } else {
+              alert("يرجى السماح بالوصول إلى المستشعرات.");
+            }
+          })
+          .catch(console.error);
       } else {
         window.addEventListener("deviceorientation", handleOrientation);
       }
     }
 
     function handleOrientation(event) {
-      let heading = event.webkitCompassHeading || 360 - event.alpha;
-      compass.style.transform = `rotate(${heading}deg)`;
+      let heading = event.webkitCompassHeading !== undefined 
+        ? event.webkitCompassHeading 
+        : (360 - event.alpha);
+      
+      needle.style.transform = `translate(-50%, -90%) rotate(${heading}deg)`;
       angleText.textContent = "زاوية الاتجاه: " + Math.round(heading) + "°";
     }
 
-    enableButton.onclick = function() {
-      startCompass();
-    };
+    enableButton.onclick = () => startCompass();
   </script>
+
 </body>
 </html>
