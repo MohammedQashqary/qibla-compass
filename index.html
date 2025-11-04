@@ -59,9 +59,7 @@
   <h2>اتجاه القبلة</h2>
 
   <div id="compass-container">
-    <!-- الخلفية -->
     <img id="compass-bg" src="Compass.png" alt="Compass">
-    <!-- الإبرة -->
     <img id="compass-needle" src="Needle.png" alt="Needle">
   </div>
 
@@ -71,28 +69,57 @@
   <script>
     const needle = document.getElementById('compass-needle');
     const angleText = document.getElementById('angle');
+    let qiblaAngle = 0;
 
+    // 1. نحسب اتجاه القبلة حسب موقع المستخدم
+    function calculateQibla(lat, lng) {
+      const meccaLat = 21.4225 * Math.PI / 180;
+      const meccaLng = 39.8262 * Math.PI / 180;
+      const userLat = lat * Math.PI / 180;
+      const userLng = lng * Math.PI / 180;
+
+      const y = Math.sin(meccaLng - userLng) * Math.cos(meccaLat);
+      const x = Math.cos(userLat) * Math.sin(meccaLat) -
+                Math.sin(userLat) * Math.cos(meccaLat) * Math.cos(meccaLng - userLng);
+
+      let angle = Math.atan2(y, x) * 180 / Math.PI;
+      return (angle + 360) % 360;
+    }
+
+    // 2. تشغيل GPS وأخذ الموقع
+    function enableQibla() {
+      navigator.geolocation.getCurrentPosition(position => {
+        qiblaAngle = calculateQibla(position.coords.latitude, position.coords.longitude);
+        startCompass();
+      }, () => {
+        alert("فشل في تحديد الموقع.");
+      });
+    }
+
+    // 3. تشغيل البوصلة وتحريك الإبرة حسب القبلة
     function startCompass() {
       if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().then(state => {
           if (state === 'granted') {
-            window.addEventListener("deviceorientation", rotateCompass);
+            window.addEventListener("deviceorientation", rotateToQibla);
           } else {
-            alert("يرجى السماح باستخدام مستشعر الاتجاه");
+            alert("يرجى السماح بالوصول إلى المستشعرات.");
           }
         });
       } else {
-        window.addEventListener("deviceorientation", rotateCompass);
+        window.addEventListener("deviceorientation", rotateToQibla);
       }
     }
 
-    function rotateCompass(event) {
+    // 4. ضبط دوران الإبرة: القبلة = الشمال - زاوية القبلة
+    function rotateToQibla(event) {
       let heading = event.webkitCompassHeading || (360 - event.alpha);
-      needle.style.transform = `translate(-50%, -90%) rotate(${heading}deg)`;
-      angleText.textContent = `زاوية الاتجاه: ${Math.round(heading)}°`;
+      let direction = heading - qiblaAngle;
+      needle.style.transform = `translate(-50%, -90%) rotate(${direction}deg)`;
+      angleText.textContent = `زاوية القبلة: ${Math.round(direction)}°`;
     }
 
-    document.getElementById('enable').addEventListener('click', startCompass);
+    document.getElementById('enable').addEventListener('click', enableQibla);
   </script>
 
 </body>
