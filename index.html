@@ -4,19 +4,50 @@
   <meta charset="UTF-8">
   <title>اتجاه القبلة</title>
   <style>
-    body { font-family: Arial; text-align: center; background: #f4f4f4; margin: 0; padding: 0; }
-    #compass-container { position: relative; display: inline-block; margin-top: 20px; }
-    #compass-bg { width: 260px; height: 260px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    #compass-container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+    }
+
+    #compass-bg {
+      width: 260px;
+      height: 260px;
+    }
+
     #compass-needle {
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       width: 200px;
       transform-origin: 50% 90%;
       transform: translate(-50%, -90%) rotate(0deg);
-      transition: transform 0.1s linear;
+      transition: transform 0.2s linear;
     }
-    button { padding: 12px 25px; margin-top: 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #angle { font-size: 18px; font-weight: bold; margin-top: 10px; }
+
+    button {
+      padding: 12px 25px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -28,69 +59,63 @@
     <img id="compass-needle" src="Needle.png">
   </div>
 
-  <p id="angle">انتظر...</p>
-  <button id="enable">اضغط لتحديد القبلة</button>
+  <p id="status">اضغط لتحديد القبلة</p>
+  <button id="startBtn">ابدأ</button>
 
   <script>
-    const needle = document.getElementById('compass-needle');
-    const angleText = document.getElementById('angle');
+    const statusText = document.getElementById("status");
+    const needle = document.getElementById("compass-needle");
     let qiblaAngle = null;
 
-    // 1. نحسب زاوية القبلة من الموقع الحالي
-    function calculateQibla(lat, lng) {
-      const meccaLat = 21.4225 * Math.PI / 180;
-      const meccaLng = 39.8262 * Math.PI / 180;
-      const userLat = lat * Math.PI / 180;
-      const userLng = lng * Math.PI / 180;
-      const y = Math.sin(meccaLng - userLng) * Math.cos(meccaLat);
-      const x = Math.cos(userLat) * Math.sin(meccaLat) -
-                Math.sin(userLat) * Math.cos(meccaLat) * Math.cos(meccaLng - userLng);
-      let angle = Math.atan2(y, x) * 180 / Math.PI;
-      return (angle + 360) % 360;
-    }
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      statusText.textContent = "جاري تحديد الموقع...";
 
-    // 2. نجيب الموقع الجغرافي للمستخدم
-    function enableQibla() {
-      if (!navigator.geolocation) {
-        alert("المتصفح لا يدعم تحديد الموقع");
-        return;
-      }
-      angleText.textContent = "جاري تحديد الموقع...";
-      navigator.geolocation.getCurrentPosition(pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        qiblaAngle = calculateQibla(lat, lng);
-        angleText.textContent = "تم تحديد القبلة، فعّل البوصلة الآن";
-        startCompass();
-      }, () => {
-        alert("فشل تحديد الموقع. تأكد من تشغيل GPS ومنح الإذن.");
-      });
-    }
-
-    // 3. نحرك الإبرة باتجاه القبلة بناءً على البوصلة
-    function startCompass() {
       if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        DeviceOrientationEvent.requestPermission().then(state => {
-          if (state === "granted") {
-            window.addEventListener("deviceorientation", rotateToQibla);
-          } else {
-            alert("يرجى السماح باستخدام المستشعرات");
-          }
-        });
-      } else {
-        window.addEventListener("deviceorientation", rotateToQibla);
+        const response = await DeviceOrientationEvent.requestPermission();
+        if (response !== "granted") {
+          statusText.textContent = "❌ لم يتم منح إذن البوصلة.";
+          return;
+        }
       }
-    }
 
-    function rotateToQibla(event) {
-      if (qiblaAngle === null) return;
-      let heading = event.webkitCompassHeading || (360 - event.alpha);
-      let direction = heading - qiblaAngle;
-      needle.style.transform = `translate(-50%, -90%) rotate(${direction}deg)`;
-      angleText.textContent = "زاوية القبلة: " + Math.round(direction) + "°";
-    }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          statusText.textContent = "✅ الموقع جاهز، جاري تحديد اتجاه القبلة...";
 
-    document.getElementById('enable').addEventListener('click', enableQibla);
+          const kaabaLat = 21.4225 * Math.PI / 180;
+          const kaabaLon = 39.8262 * Math.PI / 180;
+          const userLat = lat * Math.PI / 180;
+          const userLon = lon * Math.PI / 180;
+
+          const y = Math.sin(kaabaLon - userLon) * Math.cos(kaabaLat);
+          const x = Math.cos(userLat) * Math.sin(kaabaLat) -
+                    Math.sin(userLat) * Math.cos(kaabaLat) *
+                    Math.cos(kaabaLon - userLon);
+          qiblaAngle = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+          statusText.textContent = "📍 حرّك جهازك لتظهر القبلة";
+
+          window.addEventListener("deviceorientation", event => {
+            if (qiblaAngle === null) return;
+
+            let heading = event.webkitCompassHeading || (360 - event.alpha);
+            if (!heading && heading !== 0) {
+              statusText.textContent = "⚠️ فعّل البوصلة من إعدادات الجهاز";
+              return;
+            }
+
+            let rotate = qiblaAngle - heading;
+            needle.style.transform = `translate(-50%, -90%) rotate(${rotate}deg)`;
+            statusText.textContent = "زاوية القبلة: " + Math.round(qiblaAngle) + "°";
+          });
+        },
+        error => {
+          statusText.textContent = "❌ فشل تحديد الموقع، تأكد من GPS ومنح الإذن.";
+        }
+      );
+    });
   </script>
 
 </body>
