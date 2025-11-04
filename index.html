@@ -45,8 +45,7 @@
 
     #status {
       margin-top: 15px;
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -59,7 +58,7 @@
     <img id="compass-needle" src="Needle.png">
   </div>
 
-  <p id="status">اضغط لتحديد القبلة</p>
+  <p id="status">اضغط لبدء تحديد القبلة</p>
   <button id="startBtn">ابدأ</button>
 
   <script>
@@ -70,51 +69,42 @@
     document.getElementById("startBtn").addEventListener("click", async () => {
       statusText.textContent = "جاري تحديد الموقع...";
 
+      // طلب إذن البوصلة (iPhone)
       if (typeof DeviceOrientationEvent.requestPermission === "function") {
         const response = await DeviceOrientationEvent.requestPermission();
         if (response !== "granted") {
-          statusText.textContent = "❌ لم يتم منح إذن البوصلة.";
+          statusText.textContent = "❌ الرجاء السماح بالوصول إلى المستشعرات (Motion & Orientation)";
           return;
         }
       }
 
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          statusText.textContent = "✅ الموقع جاهز، جاري تحديد اتجاه القبلة...";
+      // تحديد الموقع
+      navigator.geolocation.getCurrentPosition(pos => {
+        const userLat = pos.coords.latitude * Math.PI / 180;
+        const userLon = pos.coords.longitude * Math.PI / 180;
+        const kaabaLat = 21.4225 * Math.PI / 180;
+        const kaabaLon = 39.8262 * Math.PI / 180;
 
-          const kaabaLat = 21.4225 * Math.PI / 180;
-          const kaabaLon = 39.8262 * Math.PI / 180;
-          const userLat = lat * Math.PI / 180;
-          const userLon = lon * Math.PI / 180;
+        const y = Math.sin(kaabaLon - userLon) * Math.cos(kaabaLat);
+        const x = Math.cos(userLat) * Math.sin(kaabaLat) -
+                  Math.sin(userLat) * Math.cos(kaabaLat) *
+                  Math.cos(kaabaLon - userLon);
+        qiblaAngle = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 
-          const y = Math.sin(kaabaLon - userLon) * Math.cos(kaabaLat);
-          const x = Math.cos(userLat) * Math.sin(kaabaLat) -
-                    Math.sin(userLat) * Math.cos(kaabaLat) *
-                    Math.cos(kaabaLon - userLon);
-          qiblaAngle = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        statusText.textContent = "📍 اجعل الهاتف مسطحًا وحرّكه لمعرفة اتجاه القبلة";
 
-          statusText.textContent = "📍 حرّك جهازك لتظهر القبلة";
+        window.addEventListener("deviceorientation", event => {
+          if (!qiblaAngle) return;
 
-          window.addEventListener("deviceorientation", event => {
-            if (qiblaAngle === null) return;
+          let heading = event.webkitCompassHeading || (360 - event.alpha);
+          if (heading == null) return;
 
-            let heading = event.webkitCompassHeading || (360 - event.alpha);
-            if (!heading && heading !== 0) {
-              statusText.textContent = "⚠️ فعّل البوصلة من إعدادات الجهاز";
-              return;
-            }
-
-            let rotate = qiblaAngle - heading;
-            needle.style.transform = `translate(-50%, -90%) rotate(${rotate}deg)`;
-            statusText.textContent = "زاوية القبلة: " + Math.round(qiblaAngle) + "°";
-          });
-        },
-        error => {
-          statusText.textContent = "❌ فشل تحديد الموقع، تأكد من GPS ومنح الإذن.";
-        }
-      );
+          let rotate = qiblaAngle - heading;
+          needle.style.transform = `translate(-50%, -90%) rotate(${rotate}deg)`;
+        });
+      }, () => {
+        statusText.textContent = "❌ لم يتم تحديد الموقع، فعّل GPS.";
+      });
     });
   </script>
 
