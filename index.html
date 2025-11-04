@@ -4,95 +4,48 @@
   <meta charset="UTF-8">
   <title>اتجاه القبلة</title>
   <style>
-    body { font-family: Arial; text-align: center; background-color: #f4f4f4; margin: 0; padding: 0; }
-    #compass-container { position: relative; display: inline-block; margin-top: 20px; }
-    #compass-bg { width: 260px; height: 260px; }
-    #compass-needle {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 200px;
-      transform-origin: 50% 90%;
-      transform: translate(-50%, -90%) rotate(0deg);
-      transition: transform 0.2s linear;
-    }
-    button { padding: 12px 25px; margin-top: 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #angle { font-size: 18px; font-weight: bold; margin-top: 10px; }
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    #compass { width: 200px; transition: transform 0.2s linear; }
+    button { padding: 10px 20px; margin-top: 15px; }
   </style>
 </head>
 <body>
-
   <h2>اتجاه القبلة</h2>
-
-  <div id="compass-container">
+   <div id="compass-container">
     <img id="compass-bg" src="Compass.png" alt="Compass">
     <img id="compass-needle" src="Needle.png" alt="Needle">
   </div>
-
-  <p id="angle">اضغط على الزر لتحديد القبلة</p>
-  <button id="enable">تفعيل البوصلة وتحديد القبلة</button>
+  <p id="angle">انتظر...</p>
+  <button id="enable">اضغط لتفعيل البوصلة</button>
 
   <script>
-    const needle = document.getElementById('compass-needle');
-    const angleText = document.getElementById('angle');
-    let qiblaAngle = null;
+    const compass = document.getElementById("compass");
+    const angleText = document.getElementById("angle");
+    const enableButton = document.getElementById("enable");
 
-    // ✅ دالة حساب اتجاه القبلة حسب إحداثيات الموقع الحالي
-    function calculateQibla(lat, lng) {
-      const kaabaLat = 21.4225 * Math.PI / 180;
-      const kaabaLng = 39.8262 * Math.PI / 180;
-      const userLat = lat * Math.PI / 180;
-      const userLng = lng * Math.PI / 180;
-
-      const y = Math.sin(kaabaLng - userLng) * Math.cos(kaabaLat);
-      const x = Math.cos(userLat) * Math.sin(kaabaLat) -
-                Math.sin(userLat) * Math.cos(kaabaLat) * Math.cos(kaabaLng - userLng);
-
-      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-    }
-
-    // ✅ الخطوة 1: نجيب الموقع فقط مرة واحدة
-    function enableQibla() {
-      if (!navigator.geolocation) {
-        alert("❌ المتصفح لا يدعم GPS");
-        return;
-      }
-      angleText.textContent = "⏳ جاري تحديد الموقع...";
-      navigator.geolocation.getCurrentPosition(position => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        
-        qiblaAngle = calculateQibla(lat, lng);
-        angleText.textContent = "✅ تم تحديد القبلة، حرّك الجوال باتجاه الأرض.";
-        startCompassRotation();
-      }, error => {
-        angleText.textContent = "❌ فشل تحديد الموقع، تأكد من GPS ومنح الإذن.";
-      });
-    }
-
-    // ✅ الخطوة 2: استخدام البوصلة لتدوير الإبرة بالنسبة للقبلة
-    function startCompassRotation() {
-      if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        DeviceOrientationEvent.requestPermission().then(response => {
-          if (response === "granted") {
-            window.addEventListener("deviceorientation", rotateNeedle);
-          } else {
-            alert("❌ لم يتم منح الإذن لاستخدام مستشعر الاتجاه.");
+    function startCompass() {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+        .then(permissionState => {
+          if (permissionState === 'granted') {
+            window.addEventListener("deviceorientation", handleOrientation);
           }
-        });
+        })
+        .catch(console.error);
       } else {
-        window.addEventListener("deviceorientation", rotateNeedle);
+        window.addEventListener("deviceorientation", handleOrientation);
       }
     }
 
-    function rotateNeedle(event) {
-      if (qiblaAngle === null) return;
-      let heading = event.webkitCompassHeading || (360 - event.alpha);
-      let direction = heading - qiblaAngle;
-      needle.style.transform = `translate(-50%, -90%) rotate(${direction}deg)`;
-      angleText.textContent = `📍 زاوية القبلة: ${Math.round(direction)}°`;
+    function handleOrientation(event) {
+      let heading = event.webkitCompassHeading || 360 - event.alpha;
+      compass.style.transform = `rotate(${heading}deg)`;
+      angleText.textContent = "زاوية الاتجاه: " + Math.round(heading) + "°";
     }
 
-    document.getElementById('enable').addEventListener('click', enableQibla);
+    enableButton.onclick = function() {
+      startCompass();
+    };
   </script>
 </body>
 </html>
