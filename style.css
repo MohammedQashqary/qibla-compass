@@ -51,34 +51,60 @@ h1{margin:22px 0 8px; font-size:28px; font-weight:800}
 .marks .w{left:10px; top:50%; transform:translateY(-50%);}
 
 /* الإبرة – قاعدة من المركز وسهم في النهاية */
-.needle{
-  position:absolute; left:50%; top:50%;
-  width:8px; height:44%;
-  background: linear-gradient(to bottom, #ffe277, var(--gold), #b9951a);
-  transform-origin:50% 100%;
-  transform: translate(-50%, 0) rotate(0deg);
-  border:none; border-radius:5px;
-  z-index:5;
+.needle {
+    width: 6px;
+    height: 38%;            /* خفّضنا طوله */
+    background-color: #d4af37;
+    position: absolute;
+    bottom: 50%;            /* يبدأ من فوق النقطة السوداء */
+    left: 50%;
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+    border-radius: 10px;
+    z-index: 2;
 }
-.needle::after{
-  content:""; position:absolute; left:50%; top:-26px;
-  transform: translateX(-50%);
-  width:0; height:0;
-  border-left:12px solid transparent;
-  border-right:12px solid transparent;
-  border-bottom:26px solid var(--gold);
-  /* بدون ظل */
-  filter:none; box-shadow:none;
+
+.needle::after {
+    content: "";
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 16px solid #d4af37;
 }
 
 /* النقطة السوداء في المركز */
-.center-dot{
-  position:absolute; left:50%; top:50%;
-  width:16px; height:16px; background:#000; border-radius:50%;
-  transform: translate(-50%, -50%);
-  border:3px solid var(--gold);
-  z-index:6;
+.center-dot {
+    width: 14px;
+    height: 14px;
+    background-color: black;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3; /* فوق السهم */
 }
+.direction {
+    position: absolute;
+    color: #d4af37;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* ن */
+.north { top: 10%; left: 50%; transform: translateX(-50%); }
+
+/* س */
+.south { bottom: 10%; left: 50%; transform: translateX(-50%); }
+
+/* ش */
+.east { right: 10%; top: 50%; transform: translateY(-50%); }
+
+/* غ */
+.west { left: 10%; top: 50%; transform: translateY(-50%); }
 
 button{
   background:var(--gold); color:#111; border:0; border-radius:12px;
