@@ -1,154 +1,180 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اتجاه القبلة</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اتجاه القبلة</title>
+<style>
+  body {
+    background: #0d0d0d;
+    color: white;
+    text-align: center;
+    font-family: "Arial", sans-serif;
+    margin: 0;
+    padding: 0;
+  }
 
-    <!-- خط عربي -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  h1 {
+    margin: 20px 0;
+  }
 
-    <style>
-        body {
-            font-family: 'Tajawal', sans-serif;
-            text-align: center;
-            background-color: #0f0f0f;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
+  .compass-container {
+    position: relative;
+    margin: 20px auto;
+    width: 300px;
+    height: 300px;
+  }
 
-        h1 {
-            margin-top: 20px;
-            font-size: 28px;
-        }
+  /* دائرة الخلفية الذهبية */
+  .compass-ring {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(
+      #d4af37 0deg 15deg,
+      #b68e2a 15deg 30deg
+    );
+    border: 8px solid #d4af37;
+  }
 
-        .compass {
-            position: relative;
-            width: 300px;
-            height: 300px;
-            margin: 30px auto;
-            border-radius: 50%;
-            background: radial-gradient(circle, #d4af37 60%, #b6912d 100%);
-            border: 6px solid #cfa526;
-        }
+  /* السهم (الإبرة) */
+  .needle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 42%;
+    background: linear-gradient(to bottom, #ffd700, #b48b02);
+    border-radius: 4px;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, 0) rotate(0deg);
+    box-shadow: none;
+    border: none;
+    z-index: 5;
+  }
 
-        /* السهم */
-        .needle {
-            position: absolute;
-            width: 6px;
-            height: 130px;
-            background: linear-gradient(#f5d26a, #cfa526);
-            top: 50%;
-            left: 50%;
-            transform-origin: bottom center;
-            transform: translate(-50%, -100%) rotate(0deg);
-            border-radius: 3px;
-        }
+  /* النقطة السوداء في مركز البوصلة */
+  .needle-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    background: black;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 6;
+  }
 
-        /* النقطة في المنتصف */
-        .center-dot {
-            position: absolute;
-            width: 18px;
-            height: 18px;
-            background: black;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 3px solid #d4af37;
-        }
+  button {
+    background-color: #d4af37;
+    color: black;
+    border: none;
+    padding: 12px 28px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-weight: bold;
+  }
 
-        /* زر البداية */
-        button {
-            background-color: #d4af37;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 10px;
-            color: black;
-            font-size: 18px;
-            cursor: pointer;
-        }
+  p {
+    margin-top: 15px;
+  }
 
-        #status {
-            margin-top: 15px;
-            font-size: 18px;
-        }
-    </style>
+  .success {
+    color: #00ff66;
+    font-weight: bold;
+  }
+</style>
 </head>
 <body>
 
-    <h1>اتجاه القبلة</h1>
+<h1>اتجاه القبلة</h1>
 
-    <div class="compass">
-        <div class="needle" id="needle"></div>
-        <div class="center-dot"></div>
-    </div>
+<div class="compass-container">
+  <div class="compass-ring"></div>
+  <div class="needle"></div>
+  <div class="needle-center"></div>
+</div>
 
-    <button id="startBtn">ابدأ</button>
-    <p id="status">حرّك الهاتف حتى يتجه السهم نحو القبلة.</p>
+<button id="start">ابدأ</button>
+<p id="status">اضغط ابدأ ثم حرك الهاتف حتى يثبت السهم على القبلة.</p>
 
-    <script>
-        let qiblaDirection = null;
-        let watching = false;
+<script>
+  const needle = document.querySelector('.needle');
+  const statusText = document.getElementById('status');
 
-        document.getElementById("startBtn").addEventListener("click", () => {
-            if (!watching) {
-                getLocation();
-            }
-        });
+  let qiblaDirection = null; 
+  let heading = 0;
 
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(success, error);
-                document.getElementById("status").textContent = "جاري تحديد القبلة...";
-            } else {
-                document.getElementById("status").textContent = "المتصفح لا يدعم تحديد الموقع.";
-            }
+  // دالة حساب القبلة حسب إحداثيات المستخدم
+  function calculateQibla(lat, lon) {
+    const kaabaLat = 21.4225 * Math.PI / 180;
+    const kaabaLon = 39.8262 * Math.PI / 180;
+    lat = lat * Math.PI / 180;
+    lon = lon * Math.PI / 180;
+
+    const y = Math.sin(kaabaLon - lon);
+    const x = Math.cos(lat) * Math.tan(kaabaLat) - Math.sin(lat) * Math.cos(kaabaLon - lon);
+    const bearing = Math.atan2(y, x);
+    return (bearing * 180 / Math.PI + 360) % 360;
+  }
+
+  // تفعيل GPS للحصول على موقع المستخدم
+  function getLocation() {
+    if (!navigator.geolocation) {
+      alert("المتصفح لا يدعم تحديد الموقع.");
+      return;
+    }
+    statusText.textContent = "جاري تحديد الموقع...";
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      qiblaDirection = calculateQibla(latitude, longitude);
+      statusText.textContent = "تم تحديد القبلة، فعّل البوصلة الآن.";
+    }, () => {
+      statusText.textContent = "فشل تحديد الموقع. تأكد من تشغيل GPS ومنح الإذن.";
+    });
+  }
+
+  // تحريك السهم مع بوصلة الجهاز
+  function startCompass() {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          window.addEventListener('deviceorientation', updateCompass);
         }
+      });
+    } else {
+      window.addEventListener('deviceorientation', updateCompass);
+    }
+  }
 
-        function success(position) {
-            let lat = position.coords.latitude;
-            let lon = position.coords.longitude;
+  // تحديث السهم كلما تحرك الجهاز
+  function updateCompass(event) {
+    heading = event.webkitCompassHeading || (360 - event.alpha);
+    if (qiblaDirection !== null) {
+      const angle = qiblaDirection - heading;
+      needle.style.transform = `translate(-50%, 0) rotate(${angle}deg)`;
+      
+      //判 إذا السهم مضبوط على القبلة
+      if (Math.abs(angle) < 5) {
+        statusText.textContent = "اتجاه القبلة صحيح ✅";
+        statusText.classList.add('success');
+        if (navigator.vibrate) navigator.vibrate(200);
+      } else {
+        statusText.textContent = "حرك الهاتف حتى يتجه السهم نحو القبلة.";
+        statusText.classList.remove('success');
+      }
+    }
+  }
 
-            // حساب اتجاه القبلة
-            let kaabaLat = 21.4225 * Math.PI / 180;
-            let kaabaLon = 39.8262 * Math.PI / 180;
-            let userLat = lat * Math.PI / 180;
-            let userLon = lon * Math.PI / 180;
+  // عند الضغط على زر ابدأ
+  document.getElementById('start').addEventListener('click', () => {
+    getLocation();
+    startCompass();
+  });
+</script>
 
-            let y = Math.sin(kaabaLon - userLon);
-            let x = Math.cos(userLat) * Math.tan(kaabaLat) - Math.sin(userLat) * Math.cos(kaabaLon - userLon);
-            qiblaDirection = Math.atan2(y, x) * 180 / Math.PI;
-            qiblaDirection = (qiblaDirection + 360) % 360;
-
-            document.getElementById("status").textContent = "تم تحديد القبلة، حرّك الهاتف الآن.";
-            watchCompass();
-        }
-
-        function error() {
-            document.getElementById("status").textContent = "فشل تحديد الموقع. تأكد من السماح بالوصول.";
-        }
-
-        function watchCompass() {
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener("deviceorientation", function(event) {
-                    let heading = event.webkitCompassHeading || event.alpha;
-                    if (heading !== null && qiblaDirection !== null) {
-                        let angle = qiblaDirection - heading;
-                        document.getElementById("needle").style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
-
-                        if (Math.abs(angle) < 10) {
-                            document.getElementById("status").textContent = "✅ اتجاه القبلة صحيح";
-                        } else {
-                            document.getElementById("status").textContent = "حرّك الهاتف حتى يتجه السهم نحو القبلة.";
-                        }
-                    }
-                });
-            } else {
-                document.getElementById("status").textContent = "جهازك لا يدعم البوصلة.";
-            }
-        }
-    </script>
 </body>
 </html>
