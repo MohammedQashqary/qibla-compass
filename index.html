@@ -68,13 +68,23 @@
     .marks .w{left:-2px; top:50%; transform:translateY(-50%)}
 
     /* سهم القبلة الذهبي (SVG) */
-    .needle{
+    .needle {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform-origin: 50% 90%;
+  width: 6px; /* عرض السهم */
+  height: 47%; /* طول السهم */
+  background: linear-gradient(to bottom, #ffd700, #c6a200);
+  border-radius: 5px;
+  
+  /* نقطة السهم */
+  box-shadow: 0 0 0 8px #000 inset;
+  
+  /* الآن يتمركز من النص ويدور حول قاعدة النقطة */
   transform: translate(-50%, -50%) rotate(0deg);
+  transform-origin: 50% 90%;
 }
+
 
     /* نستخدم SVG للسهم */
     svg{display:block}
